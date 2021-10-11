@@ -64,6 +64,8 @@ pub struct Cucumber<W: World> {
 
     debug: bool,
 
+    silent: bool,
+
     before: Vec<(Criteria, LifecycleFn)>,
 
     after: Vec<(Criteria, LifecycleFn)>,
@@ -123,10 +125,11 @@ impl<W: World> Default for Cucumber<W> {
             context: Default::default(),
             steps: Default::default(),
             features: Default::default(),
-            event_handler: Box::new(crate::output::BasicOutput::new(false)),
+            event_handler: Box::new(crate::output::BasicOutput::new(false, false)),
             step_timeout: None,
             enable_capture: true,
             debug: false,
+            silent: false,
             scenario_filter: None,
             language: None,
             before: vec![],
@@ -154,6 +157,7 @@ impl<W: World> Cucumber<W> {
             step_timeout: None,
             enable_capture: true,
             debug: false,
+            silent: false,
             scenario_filter: None,
             language: None,
             before: vec![],
@@ -276,6 +280,10 @@ impl<W: World> Cucumber<W> {
             s = s.debug(true);
         }
 
+        if opts.silent {
+            s = s.silent(true);
+        }
+
         s
     }
 
@@ -305,8 +313,15 @@ impl<W: World> Cucumber<W> {
 
     /// Enable printing stdout and stderr for every step, regardless of error state.
     pub fn debug(mut self, value: bool) -> Self {
-        self.event_handler = Box::new(crate::output::BasicOutput::new(value));
         self.debug = value;
+        self.event_handler = Box::new(crate::output::BasicOutput::new(self.debug, self.silent));
+        self
+    }
+
+    /// Enable printing stdout and stderr for every step, regardless of error state.
+    pub fn silent(mut self, value: bool) -> Self {
+        self.silent = value;
+        self.event_handler = Box::new(crate::output::BasicOutput::new(self.debug, self.silent));
         self
     }
 

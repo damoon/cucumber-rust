@@ -23,6 +23,7 @@ pub struct BasicOutput {
     step_started: bool,
     pending_feature_print_info: Option<(String, String)>,
     printed_feature_start: bool,
+    silent: bool,
 }
 
 impl Default for BasicOutput {
@@ -32,6 +33,7 @@ impl Default for BasicOutput {
             step_started: false,
             pending_feature_print_info: None,
             printed_feature_start: false,
+            silent: false,
         }
     }
 }
@@ -56,9 +58,10 @@ fn wrap_with_comment(s: &str, c: &str, indent: &str) -> String {
 }
 
 impl BasicOutput {
-    pub fn new(debug: bool) -> Self {
+    pub fn new(debug: bool, silent: bool) -> Self {
         Self {
             debug,
+            silent,
             ..Default::default()
         }
     }
@@ -262,7 +265,9 @@ impl BasicOutput {
                     termcolor::Color::White,
                     false,
                 );
-                self.print_step_extras(&*step);
+                if !self.silent {
+                    self.print_step_extras(&*step);
+                }
                 self.step_started = true;
             }
             StepEvent::Unimplemented => {
@@ -288,6 +293,9 @@ impl BasicOutput {
                 self.print_step_extras(&*step);
             }
             StepEvent::Passed(output) => {
+                if self.silent {
+                    return;
+                }
                 self.writeln_cmt(
                     &format!("✔ {}", msg),
                     &cmt,
@@ -369,6 +377,9 @@ impl BasicOutput {
     ) {
         match event {
             ScenarioEvent::Starting(example_values) => {
+                if self.silent {
+                    return;
+                }
                 let cmt = self.file_line_col(feature.path.as_ref(), scenario.position);
                 let text = if example_values.is_empty() {
                     format!("{}: {} ", &scenario.keyword, &scenario.name)
@@ -469,8 +480,10 @@ impl EventHandler for BasicOutput {
                 }
                 crate::event::FeatureEvent::Scenario(scenario, event) => {
                     if let Some((msg, cmt)) = self.pending_feature_print_info.take() {
-                        self.writeln_cmt(&msg, &cmt, "", termcolor::Color::White, true);
-                        println!();
+                        if !self.silent {
+                            self.writeln_cmt(&msg, &cmt, "", termcolor::Color::White, true);
+                            println!();
+                        }
                         self.printed_feature_start = true;
                     }
                     self.handle_scenario(feature, None, scenario, event)
@@ -479,7 +492,7 @@ impl EventHandler for BasicOutput {
                     self.handle_rule(feature, rule, event)
                 }
                 crate::event::FeatureEvent::Finished => {
-                    if self.printed_feature_start {
+                    if self.printed_feature_start && !self.silent {
                         println!();
                     }
                 }

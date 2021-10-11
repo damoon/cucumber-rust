@@ -5,6 +5,7 @@ pub struct CliOptions {
     pub scenario_filter: Option<String>,
     pub nocapture: bool,
     pub debug: bool,
+    pub silent: bool,
 }
 
 pub fn make_app() -> CliOptions {
@@ -30,15 +31,22 @@ pub fn make_app() -> CliOptions {
                 .long("debug")
                 .help("Enable verbose test logging (debug mode)"),
         )
+        .arg(
+            Arg::with_name("silent")
+                .long("silent")
+                .help("Enable minimal logging (supress successes)"),
+        )
         .get_matches();
 
     let nocapture = matches.is_present("nocapture");
     let scenario_filter = matches.value_of("filter").map(|v| v.to_string());
     let debug = matches.is_present("debug");
+    let silent = matches.is_present("silent");
 
     CliOptions {
         nocapture,
         scenario_filter,
         debug,
+        silent,
     }
 }
